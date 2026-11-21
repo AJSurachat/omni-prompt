@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Omni 1.2 Flash Prompt Builder Pro | คณะพยาบาลศาสตร์ มมส</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; background-color: #0f172a; color: #f8fafc; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    /* เทคนิคตัดส่วนภาพจากไฟล์รวม assets-numsu.jpg โดยไม่ต้องตัดรูปแยก */
+    .sprite-box {
+      background-image: url('./assets-numsu.jpg');
+      background-repeat: no-repeat;
+      background-color: #ffffff;
+    }
+    /* โลโก้คณะพยาบาลศาสตร์ มมส (มุมซ้ายบนของภาพรวม) */
+    .crop-logo {
+      background-size: 560% auto;
+      background-position: 6% 4%;
+    }
+    /* ตัวละครพยาบาลหญิงชุดฟ้า (ด้านขวาของภาพรวม) */
+    .crop-nurse {
+      background-size: 460% auto;
+      background-position: 91% 24%;
+    }
+    /* ตัวละครผู้ชายอุ้มแมวดาว (กลางค่อนขวาของภาพรวม) */
+    .crop-male {
+      background-size: 450% auto;
+      background-position: 58% 35%;
+    }
+    /* คู่ตัวละครนักศึกษา + โลโก้ NUMSU (ด้านล่างซ้ายของภาพรวม) */
+    .crop-numsu {
+      background-size: 360% auto;
+      background-position: 24% 88%;
+    }
+  </style>
+</head>
+<body class="pb-16">
+
+  <!-- Sticky Top Header: โลโก้ มมส + ผู้จัดทำ + แถบควบคุมโควตา -->
+  <header class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 shadow-lg">
+    <div class="max-w-2xl mx-auto">
+      
+      <!-- แถวบน: โลโก้คณะพยาบาลศาสตร์ มมส + ชื่อผู้จัดทำ + ปุ่มควบคุม -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-800/90">
+        <div class="flex items-center gap-2.5">
+          <div class="w-11 h-11 rounded-full overflow-hidden border-2 border-rose-500/70 shrink-0 sprite-box crop-logo shadow" title="โลโก้คณะพยาบาลศาสตร์ มหาวิทยาลัยมหาสารคาม"></div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="bg-rose-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">OMNI 1.2</span>
+              <h1 class="text-sm sm:text-base font-bold text-white leading-tight">Prompt Builder Pro</h1>
+            </div>
+            <p class="text-[11px] sm:text-xs text-amber-300/95 font-medium mt-0.5">
+              จัดทำโดย อ.ดร.สุรชาติ  สิทธิปกรณ์ คณะพยาบาลศาสตร์ มหาวิทยาลัยมหาสารคาม
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button onclick="loadPreset()" class="text-xs bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/40 px-2.5 py-1 rounded-lg font-medium transition">
+            ⚡ โหลดตัวอย่าง
+          </button>
+          <button onclick="resetAll()" class="text-xs text-slate-400 hover:text-white border border-slate-700 px-2.5 py-1 rounded-lg transition">
+            รีเซ็ต
+          </button>
+        </div>
+      </div>
+
+      <!-- แถวล่าง: ตัววัดโควตาจริงของ Omni Flash -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div id="quotaImageBox" class="bg-slate-800 border border-emerald-500/40 rounded-lg px-3 py-1.5 flex justify-between items-center transition">
+          <span class="text-slate-300">โควตาภาพอ้างอิง:</span>
+          <span id="quotaImageText" class="font-bold text-emerald-400">0 / 6 ภาพ</span>
+        </div>
+        <div id="quotaTimeBox" class="bg-slate-800 border border-sky-500/40 rounded-lg px-3 py-1.5 flex justify-between items-center transition">
+          <span class="text-slate-300">ความยาวรวม:</span>
+          <span id="quotaTimeText" class="font-bold text-sky-400">0.0s / 15.0s</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- พื้นที่เนื้อหาหลัก -->
+  <main class="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+    
+    <!-- เลือกโหมดการทำงาน -->
+    <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3">
+      <label class="block text-xs text-slate-400 mb-2 font-medium">เลือกโหมดการทำงานของ Omni 1.2 Flash</label>
+      <div class="grid grid-cols-3 gap-1.5 text-xs font-medium">
+        <button onclick="switchMode('generate')" id="tab-generate" class="mode-btn bg-rose-600 text-white py-2 px-2 rounded-lg text-center transition">สร้างวิดีโอใหม่</button>
+        <button onclick="switchMode('edit')" id="tab-edit" class="mode-btn bg-slate-700 text-slate-300 hover:bg-slate-600 py-2 px-2 rounded-lg text-center transition">แก้ไขคลิปเดิม</button>
+        <button onclick="switchMode('extend')" id="tab-extend" class="mode-btn bg-slate-700 text-slate-300 hover:bg-slate-600 py-2 px-2 rounded-lg text-center transition">ต่อความยาวคลิป</button>
+      </div>
+    </section>
+
+    <!-- ตั้งค่าพื้นฐาน: อัตราส่วนภาพ และสไตล์ภาพ -->
+    <section class="bg-slate-800/80 border border-slate-700 rounded-xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs text-slate-400 mb-1.5 font-medium">อัตราส่วนภาพ (Aspect Ratio)</label>
+        <select id="aspectRatio" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+          <option value="16:9">16:9 (แนวนอนมาตรฐาน YouTube / สื่อการสอน)</option>
+          <option value="9:16">9:16 (แนวตั้ง TikTok / Reels / Shorts)</option>
+          <option value="1:1">1:1 (จัตุรัส Social Media)</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs text-slate-400 mb-1.5 font-medium">สไตล์ภาพหลัก (Visual Style)</label>
+        <select id="visualStyle" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+          <option value="Photorealistic cinematic live-action, natural lighting">สมจริงระดับภาพยนตร์ (Photorealistic Cinematic)</option>
+          <option value="Clean 3D stylized animation, Pixar-inspired soft lighting">การ์ตูน 3D สไตล์ Pixar / สื่อการสอน</option>
+          <option value="2D modern flat educational illustration, crisp lines">ภาพประกอบ 2D สไตล์สื่อการเรียนรู้</option>
+          <option value="Documentary handheld realism, authentic hospital/field lighting">สารคดีสมจริง (Documentary Realism)</option>
+        </select>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- โหมด 1: สร้างวิดีโอใหม่ (GENERATE MODE) -->
+    <!-- ========================================== -->
+    <div id="sectionGenerate" class="space-y-4">
+
+      <!-- 1. คลังฉากหลัง -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-1">
+          <h2 class="text-sm font-bold text-rose-400">1. คลังฉากหลัง (Scene & Environment)</h2>
+          <span id="countScene" class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-300">0 ภาพ</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">กำหนดฉากสถานที่หลัก (นับรวมในโควตาสูงสุด 6 ภาพ)</p>
+        <div id="sceneList" class="space-y-2.5 mb-3"></div>
+        <button onclick="addItem('scene')" class="add-quota-btn w-full py-2 bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/50 text-rose-300 rounded-lg text-xs font-medium transition">
+          + เพิ่มฉากอ้างอิง
+        </button>
+        <div class="mt-3 pt-3 border-t border-slate-700/80 space-y-2">
+          <label class="flex items-center justify-between cursor-pointer">
+            <span class="text-xs text-slate-300">🌐 เชื่อมพื้นที่ฉากต่อเนื่องเป็นโลก 3 มิติ (Spatial Continuity)</span>
+            <input type="checkbox" id="spatial3D" checked class="w-4 h-4 accent-rose-500">
+          </label>
+          <label class="flex items-center justify-between cursor-pointer">
+            <span class="text-xs text-slate-300">👥 ให้ผู้คนรอบข้างเคลื่อนไหวสมจริง (Living Crowd)</span>
+            <input type="checkbox" id="livingCrowd" class="w-4 h-4 accent-rose-500">
+          </label>
+        </div>
+      </section>
+
+      <!-- 2. โปรไฟล์ตัวละคร (ใส่ภาพการ์ตูนตัวละครแนะนำในหมวดนี้) -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl p-4">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 class="text-sm font-bold text-amber-400">2. โปรไฟล์ตัวละคร (Character Roster)</h2>
+              <span id="countChar" class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-300">0 ภาพ</span>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">ระบุตัวละครเพื่อล็อกหน้าตา ชุด และเสียงพูดให้คงที่</p>
+          </div>
+          <!-- ภาพการ์ตูนตัวละครประจำหมวด -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <div class="w-11 h-14 rounded-lg overflow-hidden border border-amber-400/50 sprite-box crop-nurse shadow" title="ตัวละครพยาบาล"></div>
+            <div class="w-11 h-14 rounded-lg overflow-hidden border border-amber-400/50 sprite-box crop-male shadow" title="ตัวละครนักศึกษา"></div>
+          </div>
+        </div>
+
+        <div id="charList" class="space-y-2.5 mb-3"></div>
+        <button onclick="addItem('char')" class="add-quota-btn w-full py-2 bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/50 text-amber-300 rounded-lg text-xs font-medium transition">
+          + เพิ่มตัวละคร
+        </button>
+      </section>
+
+      <!-- 3. คลังวัตถุสิ่งของ -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-1">
+          <h2 class="text-sm font-bold text-emerald-400">3. คลังวัตถุสิ่งของ (Props & Objects)</h2>
+          <span id="countProp" class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-300">0 ภาพ</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">อุปกรณ์ สินค้า หรือสิ่งของสำคัญที่ต้องปรากฏในฉาก</p>
+        <div id="propList" class="space-y-2.5 mb-3"></div>
+        <button onclick="addItem('prop')" class="add-quota-btn w-full py-2 bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/50 text-emerald-300 rounded-lg text-xs font-medium transition">
+          + เพิ่มวัตถุสิ่งของ
+        </button>
+      </section>
+
+      <!-- 4. ลำดับเหตุการณ์ กล้อง และเสียง -->
+      <section class="bg-slate-800/90 border border-slate-700 rounded-xl p-4">
+        <div class="flex justify-between items-center mb-1">
+          <h2 class="text-sm font-bold text-purple-400">4. ลำดับเหตุการณ์ & เสียง (Timeline & Audio)</h2>
+          <span id="countTimeline" class="text-xs bg-slate-900 px-2 py-0.5 rounded text-slate-300">0 / 4 ช่วง</span>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">กำหนดการกระทำ มุมกล้อง และบทพูดรายช่วงเวลา (รวมไม่เกิน 15 วินาที)</p>
+        <div id="timelineList" class="space-y-3 mb-3"></div>
+        <button onclick="addTimeline()" id="btnAddTimeline" class="w-full py-2 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/50 text-purple-300 rounded-lg text-xs font-medium transition">
+          + เพิ่มช่วงเหตุการณ์ (สูงสุด 4 ช่วง)
+        </button>
+        <div class="mt-3 pt-3 border-t border-slate-700/80">
+          <label class="block text-xs text-slate-400 mb-1">เสียงบรรยากาศ / ดนตรีประกอบรวม (SFX & Ambience)</label>
+          <input type="text" id="globalAudio" placeholder="เช่น เสียงบรรยากาศในห้องตรวจ, ดนตรีคลอเบาๆ อบอุ่น..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- โหมด 2: แก้ไขคลิปเดิม (EDIT: KEEP & CHANGE) -->
+    <!-- ========================================== -->
+    <div id="sectionEdit" class="hidden space-y-4">
+      <section class="bg-slate-800/90 border border-sky-500/40 rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="bg-sky-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">EDIT MODE</span>
+          <h2 class="text-sm font-bold text-sky-400">แก้ไขคลิปวิดีโอเดิม (Keep & Change)</h2>
+        </div>
+        <p class="text-xs text-slate-400">อัปโหลดคลิปต้นฉบับใน Gemini Omni แล้วใช้คำสั่งนี้เพื่อแก้เฉพาะจุดโดยไม่ให้ส่วนอื่นเพี้ยน</p>
+        
+        <div>
+          <label class="block text-xs font-medium text-emerald-400 mb-1">1. สิ่งที่ต้องคงไว้เหมือนเดิม (Keep / Preserve)</label>
+          <textarea id="editKeep" rows="3" placeholder="เช่น คงหน้าตาและชุดของตัวละครหลัก, ตำแหน่งการยืน, แสงไฟ และมุมกล้องเดิมไว้ทั้งหมด..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-amber-400 mb-1">2. สิ่งที่ต้องการเปลี่ยนหรือเพิ่ม (Change / Modify)</label>
+          <textarea id="editChange" rows="3" placeholder="เช่น เปลี่ยนฉากหลังเป็นห้องตรวจผู้ป่วยนอก, เพิ่มอุปกรณ์ทางการแพทย์บนโต๊ะ, ให้ตัวละครหันมายิ้มและพยักหน้า..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white"></textarea>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- โหมด 3: ต่อความยาวคลิป (EXTEND VIDEO)       -->
+    <!-- ========================================== -->
+    <div id="sectionExtend" class="hidden space-y-4">
+      <section class="bg-slate-800/90 border border-indigo-500/40 rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <span class="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">EXTEND MODE</span>
+          <h2 class="text-sm font-bold text-indigo-400">ต่อความยาวคลิปเดิม (Seamless Extension)</h2>
+        </div>
+        <p class="text-xs text-slate-400">อัปโหลดคลิปเดิมแล้วสร้างเหตุการณ์ต่อจากวินาทีสุดท้ายอย่างลื่นไหล</p>
+
+        <div>
+          <label class="block text-xs font-medium text-indigo-300 mb-1">เหตุการณ์ที่จะเกิดขึ้นต่อเนื่อง (Next Action)</label>
+          <textarea id="extendAction" rows="3" placeholder="เช่น ต่อเนื่องจากเฟรมสุดท้าย ตัวละครเดินไปหยิบแฟ้มประวัติผู้ป่วยบนโต๊ะ แล้วหันมาพูดอธิบาย..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-xs text-white"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">การเคลื่อนกล้องต่อเนื่อง</label>
+            <select id="extendCamera" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+              <option value="Continue the exact camera motion smoothly">เคลื่อนกล้องต่อเนื่องจากเดิม (Smooth Continue)</option>
+              <option value="Slow push-in closer to the subject">ซูมเข้าหาตัวละครช้าๆ (Slow Push-in)</option>
+              <option value="Gentle tracking pan following the movement">แพนกล้องตามการเคลื่อนไหว (Tracking Pan)</option>
+              <option value="Hold camera steady in a medium shot">ตั้งกล้องนิ่งระดับครึ่งตัว (Static Medium)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">บทพูดหรือเสียงต่อเนื่อง (Audio / Dialogue)</label>
+            <input type="text" id="extendAudio" placeholder="เช่น เสียงพูดว่า 'จากผลตรวจเบื้องต้น...'" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white">
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- ส่วนผลลัพธ์: ปุ่มสร้าง + เช็กลิสต์ + คัดลอก -->
+    <!-- ========================================== -->
+    <section class="bg-slate-900 border-2 border-rose-500/50 rounded-xl p-4 shadow-xl space-y-3">
+      <button onclick="generateFinalPrompt()" class="w-full py-3 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-bold rounded-xl text-sm shadow-lg transition transform active:scale-[0.99]">
+        ✨ สร้างชุดคำสั่ง (Generate Omni Prompt)
+      </button>
+
+      <!-- กล่องสรุปไฟล์ที่ต้องอัปโหลดแนบ -->
+      <div id="attachmentChecklistBox" class="hidden bg-slate-800/90 border border-amber-500/40 rounded-lg p-3">
+        <h3 class="text-xs font-bold text-amber-400 mb-1.5">📎 เช็กลิสต์ไฟล์ที่ต้องอัปโหลดแนบใน Gemini Omni Flash:</h3>
+        <ul id="attachmentList" class="text-xs text-slate-300 space-y-1 list-disc list-inside"></ul>
+      </div>
+
+      <!-- กล่องผลลัพธ์ Prompt -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between items-center">
+          <span class="text-xs font-semibold text-slate-300">ผลลัพธ์ Prompt (พร้อมนำไปวางใช้งาน)</span>
+          <button onclick="copyPrompt()" id="btnCopy" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-lg transition">
+            📋 คัดลอก Prompt
+          </button>
+        </div>
+        <textarea id="outputPrompt" rows="8" readonly placeholder="กดปุ่ม 'สร้างชุดคำสั่ง' ด้านบนเพื่อประมวลผล..." class="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-xs text-emerald-300 font-mono leading-relaxed"></textarea>
+      </div>
+    </section>
+
+    <!-- ส่วนท้าย (Footer): โลโก้ + การ์ตูน NUMSU + ชื่อผู้จัดทำ -->
+    <footer class="bg-slate-800/70 border border-slate-700/80 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full overflow-hidden border border-slate-600 shrink-0 sprite-box crop-logo"></div>
+        <div class="w-24 h-12 rounded-lg overflow-hidden border border-slate-600 shrink-0 sprite-box crop-numsu"></div>
+      </div>
+      <div class="text-center sm:text-right">
+        <p class="text-xs font-semibold text-white">
+          จัดทำโดย อ.ดร.สุรชาติ  สิทธิปกรณ์ คณะพยาบาลศาสตร์ มหาวิทยาลัยมหาสารคาม
+        </p>
+        <p class="text-[11px] text-slate-400 mt-0.5">
+          เครื่องมือช่วยสร้างชุดคำสั่งสำหรับ Gemini Omni 1.2 Flash เพื่อสนับสนุนการเรียนการสอนและสื่อดิจิทัล
+        </p>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- ระบบประมวลผล JavaScript -->
+  <script>
+    let currentMode = 'generate';
+    let scenes = [];
+    let chars = [];
+    let props = [];
+    let timelines = [];
+    const MAX_IMAGES = 6;
+    const MAX_SECONDS = 15.0;
+
+    function switchMode(mode) {
+      currentMode = mode;
+      ['generate', 'edit', 'extend'].forEach(m => {
+        const btn = document.getElementById(`tab-${m}`);
+        const sec = document.getElementById(`section${m.charAt(0).toUpperCase() + m.slice(1)}`);
+        if (m === mode) {
+          btn.className = 'mode-btn bg-rose-600 text-white py-2 px-2 rounded-lg text-center transition shadow';
+          sec.classList.remove('hidden');
+        } else {
+          btn.className = 'mode-btn bg-slate-700 text-slate-300 hover:bg-slate-600 py-2 px-2 rounded-lg text-center transition';
+          sec.classList.add('hidden');
+        }
+      });
+    }
+
+    function updateQuotas() {
+      const totalImages = scenes.length + chars.length + props.length;
+      const imgText = document.getElementById('quotaImageText');
+      const imgBox = document.getElementById('quotaImageBox');
+      
+      imgText.textContent = `${totalImages} / ${MAX_IMAGES} ภาพ`;
+      if (totalImages >= MAX_IMAGES) {
+        imgText.className = 'font-bold text-rose-400';
+        imgBox.className = 'bg-slate-800 border border-rose-500 rounded-lg px-3 py-1.5 flex justify-between items-center';
+      } else {
+        imgText.className = 'font-bold text-emerald-400';
+        imgBox.className = 'bg-slate-800 border border-emerald-500/40 rounded-lg px-3 py-1.5 flex justify-between items-center';
+      }
+
+      document.querySelectorAll('.add-quota-btn').forEach(btn => {
+        if (totalImages >= MAX_IMAGES) {
+          btn.disabled = true;
+          btn.classList.add('opacity-40', 'cursor-not-allowed');
+        } else {
+          btn.disabled = false;
+          btn.classList.remove('opacity-40', 'cursor-not-allowed');
+        }
+      });
+
+      document.getElementById('countScene').textContent = `${scenes.length} ภาพ`;
+      document.getElementById('countChar').textContent = `${chars.length} ภาพ`;
+      document.getElementById('countProp').textContent = `${props.length} ภาพ`;
+
+      const totalTime = timelines.reduce((sum, item) => sum + (parseFloat(item.duration) || 0), 0);
+      const timeText = document.getElementById('quotaTimeText');
+      const timeBox = document.getElementById('quotaTimeBox');
+      
+      timeText.textContent = `${totalTime.toFixed(1)}s / ${MAX_SECONDS.toFixed(1)}s`;
+      if (totalTime > MAX_SECONDS) {
+        timeText.className = 'font-bold text-rose-400';
+        timeBox.className = 'bg-slate-800 border border-rose-500 rounded-lg px-3 py-1.5 flex justify-between items-center';
+      } else {
+        timeText.className = 'font-bold text-sky-400';
+        timeBox.className = 'bg-slate-800 border border-sky-500/40 rounded-lg px-3 py-1.5 flex justify-between items-center';
+      }
+
+      document.getElementById('countTimeline').textContent = `${timelines.length} / 4 ช่วง`;
+      const btnAddTime = document.getElementById('btnAddTimeline');
+      if (timelines.length >= 4) {
+        btnAddTime.disabled = true;
+        btnAddTime.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        btnAddTime.disabled = false;
+        btnAddTime.classList.remove('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    function addItem(type, presetData = null) {
+      if (scenes.length + chars.length + props.length >= MAX_IMAGES) return;
+      const id = Date.now() + Math.random();
+
+      if (type === 'scene') {
+        scenes.push(presetData || { id, name: '', detail: '' });
+        renderScenes();
+      } else if (type === 'char') {
+        chars.push(presetData || { id, role: 'Human', name: '', appearance: '', voice: 'น้ำเสียงอบอุ่น ชัดเจน' });
+        renderChars();
+      } else if (type === 'prop') {
+        props.push(presetData || { id, name: '', position: 'placed on the foreground table' });
+        renderProps();
+      }
+      updateQuotas();
+    }
+
+    function removeItem(type, index) {
+      if (type === 'scene') { scenes.splice(index, 1); renderScenes(); }
+      if (type === 'char') { chars.splice(index, 1); renderChars(); }
+      if (type === 'prop') { props.splice(index, 1); renderProps(); }
+      updateQuotas();
+    }
+
+    function renderScenes() {
+      const container = document.getElementById('sceneList');
+      container.innerHTML = scenes.map((s, i) => `
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-rose-400">ฉากที่ #${i + 1}</span>
+            <button onclick="removeItem('scene', ${i})" class="text-[11px] text-slate-400 hover:text-rose-400">ลบออก</button>
+          </div>
+          <input type="text" value="${s.name}" oninput="scenes[${i}].name = this.value" placeholder="ชื่อสถานที่ (เช่น ห้องตรวจผู้ป่วยนอกโรงพยาบาล)" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+          <input type="text" value="${s.detail}" oninput="scenes[${i}].detail = this.value" placeholder="รายละเอียดแสงและบรรยากาศ (เช่น แสงสว่างสะอาดตา มีเตียงตรวจและม่านกั้น)" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+        </div>
+      `).join('');
+    }
+
+    function renderChars() {
+      const container = document.getElementById('charList');
+      container.innerHTML = chars.map((c, i) => `
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-amber-400">ตัวละครที่ #${i + 1}</span>
+            <button onclick="removeItem('char', ${i})" class="text-[11px] text-slate-400 hover:text-rose-400">ลบออก</button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <select onchange="chars[${i}].role = this.value" class="bg-slate-800 border border-slate-700 rounded px-2 py-1.5 text-xs text-white">
+              <option value="Human" ${c.role === 'Human' ? 'selected' : ''}>คน / มนุษย์</option>
+              <option value="3D Stylized Character" ${c.role === '3D Stylized Character' ? 'selected' : ''}>ตัวการ์ตูน / 3D</option>
+              <option value="Animal" ${c.role === 'Animal' ? 'selected' : ''}>สัตว์</option>
+            </select>
+            <input type="text" value="${c.name}" oninput="chars[${i}].name = this.value" placeholder="ชื่อตัวละคร (เช่น พยาบาลฟ้า)" class="bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+          </div>
+          <input type="text" value="${c.appearance}" oninput="chars[${i}].appearance = this.value" placeholder="การแต่งกาย/จุดเด่น (เช่น ชุดพยาบาลสีฟ้าอ่อน ป้ายชื่ออกซ้าย หมวกพยาบาลสีขาว)" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+          <input type="text" value="${c.voice}" oninput="chars[${i}].voice = this.value" placeholder="โทนเสียงพูด (เช่น เสียงผู้หญิงไทย นุ่มนวล ชัดเจน)" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+        </div>
+      `).join('');
+    }
+
+    function renderProps() {
+      const container = document.getElementById('propList');
+      container.innerHTML = props.map((p, i) => `
+        <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-emerald-400">วัตถุชิ้นที่ #${i + 1}</span>
+            <button onclick="removeItem('prop', ${i})" class="text-[11px] text-slate-400 hover:text-rose-400">ลบออก</button>
+          </div>
+          <input type="text" value="${p.name}" oninput="props[${i}].name = this.value" placeholder="ชื่อวัตถุ (เช่น เครื่องวัดความดันดิจิทัล / แท็บเล็ตบันทึกข้อมูล)" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+          <select onchange="props[${i}].position = this.value" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+            <option value="placed on the foreground table" ${p.position.includes('table') ? 'selected' : ''}>วางบนโต๊ะด้านหน้าฉาก (On foreground table)</option>
+            <option value="held in the character's hands" ${p.position.includes('hands') ? 'selected' : ''}>ถืออยู่ในมือตัวละคร (Held in hands)</option>
+            <option value="positioned in the background" ${p.position.includes('background') ? 'selected' : ''}>ตั้งอยู่ด้านหลังฉาก (In background)</option>
+            <option value="worn or attached to the character" ${p.position.includes('worn') ? 'selected' : ''}>สวมใส่หรือติดอยู่กับตัวละคร (Worn on body)</option>
+          </select>
+        </div>
+      `).join('');
+    }
+
+    function addTimeline(presetData = null) {
+      if (timelines.length >= 4) return;
+      timelines.push(presetData || {
+        duration: 4.0,
+        camera: 'Medium shot, slow smooth push-in',
+        action: '',
+        dialogue: ''
+      });
+      renderTimelines();
+      updateQuotas();
+    }
+
+    function removeTimeline(index) {
+      timelines.splice(index, 1);
+      renderTimelines();
+      updateQuotas();
+    }
+
+    function renderTimelines() {
+      const container = document.getElementById('timelineList');
+      let currentStart = 0.0;
+
+      container.innerHTML = timelines.map((t, i) => {
+        const dur = parseFloat(t.duration) || 0;
+        const startStr = currentStart.toFixed(1);
+        const endStr = (currentStart + dur).toFixed(1);
+        currentStart += dur;
+
+        return `
+          <div class="bg-slate-900 border border-purple-500/40 rounded-lg p-3 space-y-2">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <span class="bg-purple-600 text-white text-[11px] font-bold px-2 py-0.5 rounded">ช่วงที่ ${i + 1}</span>
+                <span class="text-xs font-mono text-purple-300">[${startStr}s - ${endStr}s]</span>
+              </div>
+              <button onclick="removeTimeline(${i})" class="text-[11px] text-slate-400 hover:text-rose-400">ลบช่วงนี้</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5">ความยาว (วินาที)</label>
+                <input type="number" step="0.5" min="1" max="15" value="${t.duration}" onchange="timelines[${i}].duration = parseFloat(this.value) || 1; renderTimelines(); updateQuotas();" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+              </div>
+              <div>
+                <label class="block text-[10px] text-slate-400 mb-0.5">มุมกล้อง (Camera)</label>
+                <select onchange="timelines[${i}].camera = this.value" class="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+                  <option value="Medium shot, slow smooth push-in" ${t.camera.includes('push-in') ? 'selected' : ''}>ซูมเข้าช้าๆ (Slow Push-in)</option>
+                  <option value="Static steady medium shot" ${t.camera.includes('Static') ? 'selected' : ''}>ตั้งกล้องนิ่ง (Static Shot)</option>
+                  <option value="Smooth tracking shot following action" ${t.camera.includes('tracking') ? 'selected' : ''}>แพนตามการเคลื่อนไหว (Tracking)</option>
+                  <option value="Close-up shot focusing on facial expression and hands" ${t.camera.includes('Close-up') ? 'selected' : ''}>โคลสอัปเน้นสีหน้า/มือ (Close-up)</option>
+                  <option value="Wide establishing shot" ${t.camera.includes('Wide') ? 'selected' : ''}>มุมกว้างเห็นทั้งฉาก (Wide Shot)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">การกระทำและสีหน้าท่าทางในฉาก (Action)</label>
+              <input type="text" value="${t.action}" oninput="timelines[${i}].action = this.value" placeholder="เช่น ตัวละครยิ้มทักทายและชี้ไปที่หน้าจอแท็บเล็ตเพื่ออธิบายข้อมูล" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+            </div>
+
+            <div>
+              <label class="block text-[10px] text-slate-400 mb-0.5">บทพูดพร้อมขยับปาก (Dialogue - ถ้ามี)</label>
+              <input type="text" value="${t.dialogue}" oninput="timelines[${i}].dialogue = this.value" placeholder="เช่น ตัวละครพูดว่า 'สวัสดีค่ะ วันนี้เราจะมาเรียนรู้การบันทึกข้อมูลทางการพยาบาลกันนะคะ'" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function generateFinalPrompt() {
+      const aspect = document.getElementById('aspectRatio').value;
+      const style = document.getElementById('visualStyle').value;
+      const checklistBox = document.getElementById('attachmentChecklistBox');
+      const checklistUl = document.getElementById('attachmentList');
+      let promptLines = [];
+      let attachments = [];
+
+      if (currentMode === 'generate') {
+        const totalTime = timelines.reduce((sum, item) => sum + (parseFloat(item.duration) || 0), 0);
+        if (totalTime > MAX_SECONDS) {
+          alert(`⚠️ ความยาววิดีโอรวม (${totalTime.toFixed(1)}s) เกินลิมิต 15.0 วินาทีของ Omni Flash กรุณาลดเวลาใน Timeline ก่อนครับ`);
+          return;
+        }
+
+        promptLines.push(`Create a ${totalTime > 0 ? totalTime.toFixed(1) + '-second' : ''} high-definition video in ${aspect} aspect ratio. Visual style: ${style}.`);
+
+        if (scenes.length > 0) {
+          const sceneDesc = scenes.map((s, idx) => {
+            attachments.push(`ภาพที่ ${attachments.length + 1}: ภาพฉากสถานที่ "${s.name || 'ฉากที่ ' + (idx+1)}"`);
+            return `Reference Image ${attachments.length} (${s.name || 'Scene ' + (idx+1)}): ${s.detail || 'Maintain exact architectural layout and lighting'}`;
+          }).join('; ');
+          promptLines.push(`Environment & Setting: ${sceneDesc}.`);
+        }
+
+        if (document.getElementById('spatial3D').checked) {
+          promptLines.push(`Maintain cohesive 3D spatial continuity across camera movements so background geometry remains consistent.`);
+        }
+        if (document.getElementById('livingCrowd').checked) {
+          promptLines.push(`Background people and bystanders move, talk, and interact naturally in the background.`);
+        }
+
+        if (chars.length > 0) {
+          const charDesc = chars.map((c, idx) => {
+            attachments.push(`ภาพที่ ${attachments.length + 1}: ภาพตัวละคร "${c.name || 'ตัวละครที่ ' + (idx+1)}"`);
+            return `Reference Image ${attachments.length} (${c.name || 'Character ' + (idx+1)}, ${c.role}): ${c.appearance || 'Preserve exact face, hair, and outfit'}. Voice profile: ${c.voice}`;
+          }).join('; ');
+          promptLines.push(`Characters (Strictly preserve facial identity, attire, and proportions): ${charDesc}.`);
+        }
+
+        if (props.length > 0) {
+          const propDesc = props.map((p, idx) => {
+            attachments.push(`ภาพที่ ${attachments.length + 1}: ภาพวัตถุ "${p.name || 'วัตถุที่ ' + (idx+1)}"`);
+            return `Reference Image ${attachments.length} (${p.name || 'Prop ' + (idx+1)}) ${p.position}`;
+          }).join('; ');
+          promptLines.push(`Key Props & Objects: ${propDesc}.`);
+        }
+
+        if (timelines.length > 0) {
+          let tStart = 0.0;
+          const seqLines = timelines.map((t) => {
+            const dur = parseFloat(t.duration) || 3.0;
+            const tEnd = tStart + dur;
+            const block = `[${tStart.toFixed(1)}s - ${tEnd.toFixed(1)}s] Camera: ${t.camera}. Action: ${t.action || 'Natural expressive movement'}.${t.dialogue ? ` Lip-sync Dialogue: ${t.dialogue}.` : ''}`;
+            tStart = tEnd;
+            return block;
+          });
+          promptLines.push(`Chronological Sequence:\n${seqLines.join('\n')}`);
+        }
+
+        const globalAudio = document.getElementById('globalAudio').value.trim();
+        if (globalAudio) {
+          promptLines.push(`Audio & Ambience: ${globalAudio}, synchronized naturally with on-screen actions.`);
+        }
+
+      } else if (currentMode === 'edit') {
+        const keep = document.getElementById('editKeep').value.trim();
+        const change = document.getElementById('editChange').value.trim();
+        attachments.push(`วิดีโอต้นฉบับที่ต้องการแก้ไข (1 คลิป)`);
+
+        promptLines.push(`Edit the uploaded reference video in ${aspect} aspect ratio (${style}).`);
+        if (keep) promptLines.push(`PRESERVE & KEEP UNCHANGED: ${keep}. Maintain exact facial identity, body movement, and original lighting consistency.`);
+        if (change) promptLines.push(`MODIFY & CHANGE: ${change}. Blend the modifications seamlessly into the existing scene.`);
+
+      } else if (currentMode === 'extend') {
+        const action = document.getElementById('extendAction').value.trim();
+        const cam = document.getElementById('extendCamera').value;
+        const audio = document.getElementById('extendAudio').value.trim();
+        attachments.push(`วิดีโอต้นฉบับที่ต้องการต่อความยาว (1 คลิป)`);
+
+        promptLines.push(`Seamlessly extend the uploaded video from its final frame in ${aspect} aspect ratio (${style}). Maintain complete visual, character, and lighting continuity.`);
+        if (action) promptLines.push(`Continuation Action: ${action}.`);
+        promptLines.push(`Camera Motion: ${cam}.`);
+        if (audio) promptLines.push(`Audio & Dialogue Continuation: ${audio}.`);
+      }
+
+      if (attachments.length > 0) {
+        checklistBox.classList.remove('hidden');
+        checklistUl.innerHTML = attachments.map(a => `<li>${a}</li>`).join('');
+      } else {
+        checklistBox.classList.add('hidden');
+      }
+
+      document.getElementById('outputPrompt').value = promptLines.join('\n\n');
+    }
+
+    function copyPrompt() {
+      const output = document.getElementById('outputPrompt');
+      if (!output.value) return;
+      output.select();
+      document.execCommand('copy');
+      const btn = document.getElementById('btnCopy');
+      btn.textContent = '✅ คัดลอกแล้ว!';
+      setTimeout(() => btn.textContent = '📋 คัดลอก Prompt', 2000);
+    }
+
+    function loadPreset() {
+      resetAll(false);
+      switchMode('generate');
+      document.getElementById('aspectRatio').value = '16:9';
+      document.getElementById('visualStyle').value = 'Clean 3D stylized animation, Pixar-inspired soft lighting';
+      
+      addItem('scene', { id: 1, name: 'ห้องเรียนพยาบาลอัจฉริยะ (Smart Nursing Lab)', detail: 'ห้องปฏิบัติการพยาบาลสว่างสะอาดตา มีเตียงผู้ป่วยจำลองและจอมอนิเตอร์ทางการแพทย์' });
+      addItem('char', { id: 2, role: '3D Stylized Character', name: 'พยาบาลจิบิ', appearance: 'ตัวละครพยาบาลจิบิสวมชุดพยาบาลสีฟ้าอ่อน คอปกสีขาว หมวกพยาบาลสีขาวล้วนไม่มีแถบ ป้ายชื่อสีเขียวที่หน้าอกซ้าย', voice: 'เสียงผู้หญิงไทย สดใส อบอุ่น ชัดเจน' });
+      addItem('prop', { id: 3, name: 'แท็บเล็ตระบบ Mobile Nursing Record', detail: '', position: "held in the character's hands" });
+
+      addTimeline({
+        duration: 4.0,
+        camera: 'Medium shot, slow smooth push-in',
+        action: 'พยาบาลจิบิยิ้มอย่างเป็นมิตร มือหนึ่งถือแท็บเล็ตและอีกมือผายมือแนะนำห้องปฏิบัติการ',
+        dialogue: 'สวัสดีค่ะ วันนี้เรามาเรียนรู้การใช้งานระบบบันทึกทางการพยาบาลยุคดิจิทัลกันนะคะ'
+      });
+      addTimeline({
+        duration: 4.5,
+        camera: 'Close-up shot focusing on facial expression and hands',
+        action: 'พยาบาลจิบิก้มมองแท็บเล็ตและแตะหน้าจอแสดงข้อมูลผู้ป่วย จากนั้นเงยหน้ายิ้มให้กล้อง',
+        dialogue: 'เพียงบันทึกข้อมูลผ่านแท็บเล็ต ระบบจะเชื่อมโยงการดูแลแบบไร้รอยต่อทันทีค่ะ'
+      });
+
+      document.getElementById('globalAudio').value = 'เสียงบรรยากาศห้องเรียนที่เงียบสงบ พร้อมดนตรีประกอบแนว Educational สดใสอบอุ่นคลอเบาๆ';
+      generateFinalPrompt();
+    }
+
+    function resetAll(addDefault = true) {
+      scenes = [];
+      chars = [];
+      props = [];
+      timelines = [];
+      document.getElementById('globalAudio').value = '';
+      document.getElementById('editKeep').value = '';
+      document.getElementById('editChange').value = '';
+      document.getElementById('extendAction').value = '';
+      document.getElementById('extendAudio').value = '';
+      document.getElementById('outputPrompt').value = '';
+      document.getElementById('attachmentChecklistBox').classList.add('hidden');
+      
+      renderScenes();
+      renderChars();
+      renderProps();
+      if (addDefault) addTimeline();
+      else renderTimelines();
+      updateQuotas();
+    }
+
+    resetAll(true);
+  </script>
+</body>
+</html>
